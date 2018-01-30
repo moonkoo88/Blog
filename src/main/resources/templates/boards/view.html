@@ -1,0 +1,331 @@
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/thymeleaf-extras-springsecurity4"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{/layout/layout1}">
+
+<div layout:fragment="content">
+    <form th:action="${'/login'}"></form>
+
+    <div class="panel-heading">View Page</div>
+    <div class="panel-body">
+
+
+        <div class="form-group">
+            <label>BNO</label>
+            <input class="form-control" name="bno" th:value="${vo.bno}" readonly="readonly" />
+        </div>
+
+        <div class="form-group">
+            <label>Title</label>
+            <input class="form-control" name="title" th:value="${vo.title}" readonly="readonly" />
+        </div>
+
+        <div class="form-group">
+            <label>Content</label>
+            <!--
+            <textarea class="form-control" rows="3" id="summernote" name='content' th:text="${vo.content}" readonly="readonly"></textarea>
+            -->
+            <th:block th:utext="${vo.content}"></th:block>
+        </div>
+
+        <div class="form-group">
+            <label>Writer</label>
+            <input class="form-control" name="writer" th:value="${vo.writer}" readonly="readonly" />
+        </div>
+
+        <div class="form-group">
+            <label>RegDate</label>
+            <input class="form-control" name="regDate" th:value="${#dates.format(vo.regdate,'yyyy-MM-dd')}" readonly="readonly" />
+        </div>
+
+        <div class="form-group">
+            <label>Download File</label>
+            <div class="container">
+                <div class='table-responsive'>
+                    <table class="table table-striped table-bordered table-hover">
+                        <thead>
+                        <tr>
+                            <th>File Name</th>
+                            <th>File Size</th>
+                            <th>Download</th>
+                        </tr>
+                        </thead>
+                        <tbody id="fileTable" >
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div class="pull-right" th:with="uid =${#authentication.principal} eq 'anonymousUser'? null : ${#authentication.principal.member.uid} ">
+            <a th:href="@{ modify(page=${pageVO.page},
+			                size=${pageVO.size},
+			                type=${pageVO.type},
+			                keyword=${pageVO.keyword},
+			                bno =${vo.bno}
+			             )}" class="btn btn-default" id="goModBtn">수정/삭제</a>
+
+            <a th:href="@{ list(page=${pageVO.page},
+			                size=${pageVO.size},
+			                type=${pageVO.type},
+			                keyword=${pageVO.keyword},
+			                bno = ${vo.bno}
+			             )}" class="btn btn-primary">목록</a>
+        </div>
+
+    </div>
+    <div class="container">
+        <div class='table-responsive'>
+            <table class="table table-striped table-bordered table-hover">
+                <thead>
+                <tr>
+                    <th>RNO</th>
+                    <th>REPLY TEXT</th>
+                    <th>REPLER</th>
+                    <th>REPLY DATE</th>
+                </tr>
+                </thead>
+                <tbody id="replyTable" >
+                </tbody>
+            </table>
+        </div>
+        <div class='pull-right'>
+            <button class='btn btn-default' id='addReplyBtn'>답변 등록</button>
+        </div>
+    </div>
+    <!-- Modal -->
+    <div id="myModal" class="modal fade" role="dialog">
+        <div class="modal-dialog">
+
+            <!-- Modal content-->
+            <div class="modal-content">
+                <div class="modal-header">
+                    <button type="button" class="close" data-dismiss="modal">&times;</button>
+                    <h4 class="modal-title">Modal Header</h4>
+                </div>
+                <div class="modal-body">
+                    <label>Reply Text</label>
+                    <input type="text" class="form-control" name='replyText'>
+
+                    <label>Replyer</label>
+                    <input type="text" class="form-control" name='replyer'>
+                </div>
+                <div class="modal-footer">
+                    <button id='delModalBtn'class="btn btn-danger">삭제</button>
+                    <button id='modalBtn'class="btn btn-info">등록</button>
+                    <button type="button" class="btn btn-default" data-dismiss="modal">닫기</button>
+                </div>
+            </div>
+
+        </div>
+    </div>
+    <!--  end Modal -->
+
+</div>
+<!--  end fragment -->
+
+<th:block layout:fragment="script">
+    <script th:inline="javascript" th:src="@{'/js/upfile.js'}"></script>
+    <script th:inline="javascript" th:src="@{'/js/reply.js'}"></script>
+
+    <script th:inline="javascript">
+
+        var csrf = JSON.parse('[[${_csrf}]]');
+
+        $(document).ready(function (e){
+
+            /* 섬머노트 출력이 아닌 html 출력
+            $('#summernote').summernote({
+                height: 300,
+                minHeight: null,
+                maxHeight: null
+            });
+            $('#summernote').summernote('disable');
+            */
+
+            $("img").addClass("img-responsive");
+
+            var mode;
+
+            var bno = [[${vo.bno}]];
+
+            var replyTextObj = $("input[name='replyText']");
+            var replyerObj = $("input[name='replyer']");
+
+            var rno;
+
+            var uid =[[${#authentication.principal} eq 'anonymousUser'? null : ${#authentication.principal.member.uid}]];
+
+            (function getAllReplies(){
+                //load replies
+                replyManager.getAll([[${vo.bno}]], printListReply);
+            })();
+
+            (function getAllFlies(){
+                //load files
+                fileManager.getAll([[${vo.bno}]], printListFile);
+            })();
+
+            function printListReply(list){
+                var str = "";
+                var replyObj;
+                for(var i = 0; i < list.length; i++){
+                    replyObj = list[i];
+
+                    str += "<tr>" +
+                        "<td>"+ replyObj.rno+" </td>" +
+                        "<td>"+ replyObj.replyText+" </td>" +
+                        "<td>"+ replyObj.replyer+" </td>" +
+                        "<td>"+ formatDate(replyObj.regdate)+" </td>" +
+                        "</tr>";
+                }
+                $("#replyTable").html(str);
+            }
+
+            function printListFile(list){
+                var str = "";
+                var filesObj;
+                for(var i = 0; i < list.length; i++){
+                    filesObj = list[i];
+
+                    str += "<tr>" +
+                        "<td>"+ filesObj.fileName+" </td>" +
+                        "<td>"+ number_to_size(filesObj.size)+" </td>" +
+                        "<td>"+ "<a href=\"/file/down/" + filesObj.id + "\" class=\"btn btn-default\">저장</a>"+" </td>" +
+                        "</tr>"
+                }
+                $("#fileTable").html(str);
+            }
+
+            function formatDate(timeValue){
+
+                var date = new Date(timeValue);
+                return  date.getFullYear()
+                    + "-" + (date.getMonth()+1 >= 10?date.getMonth()+1 : '0'+ (date.getMonth()+1)  )
+                    + "-" + date.getDate()
+
+            }
+
+            function number_to_size(x) {
+                var s = ['bytes', 'kB', 'MB', 'GB', 'TB', 'PB'];
+                var e = Math.floor(Math.log(x) / Math.log(1024));
+                return (x / Math.pow(1024, e)).toFixed(2) + " " + s[e];
+            }
+
+            function number_with_delimiter(x) {
+                return String(x).replace(/\B(?=(?:\d{3})+(?!\d))/g, ",");
+            }
+
+            $("#addReplyBtn").on('click', function(){
+
+                if(uid == null){
+                    if(confirm("로그인 할까요?")){
+                        self.location = [[@{/login}]]+"?dest=" + encodeURIComponent(self.location);
+                    }
+                    return;
+                }
+
+                replyerObj.val(uid);
+
+                $("#myModal").modal("show");
+                $(".modal-title").text("Add Reply");
+
+                $("#modalBtn").show();
+                $("#delModalBtn").hide();
+
+                mode= "ADD";
+            });
+
+
+            $("#modalBtn").click(function(){
+
+                var replyText =  replyTextObj.val();
+                var replyer = replyerObj.val();
+
+                if(mode =='ADD'){
+                    var obj = {replyText:replyText, replyer: replyer, bno:bno, csrf:csrf};
+
+                    replyManager.add(obj, function(list){
+                        alert("새로운 댓글이 추가되었습니다. ");
+                        afterAll(list);
+                    });
+                }else if(mode='MOD'){
+                    var obj = {replyText:replyText, bno:bno, rno:rno, csrf:csrf};
+
+                    replyManager.update(obj, function(list){
+                        alert("댓글이 수정되었습니다. ");
+                        afterAll(list);
+                    });
+                }
+            });
+
+            $("#replyTable").on("click", "tr", function(e){
+
+                var tds = $(this).find('td');
+
+                console.log(tds);
+
+                rno = tds[0].innerHTML;
+                mode ='MOD';
+
+                replyTextObj.val(tds[1].innerHTML);
+                replyerObj.val(tds[2].innerHTML);
+                $("#delModalBtn").show();
+                $("#myModal").modal("show");
+                $(".modal-title").text("Modify/Delete Reply");
+
+                if(uid != tds[2].innerHTML.trim() ){
+
+                    $("#delModalBtn").hide();
+                    $("#modalBtn").hide();
+
+                }
+
+            });
+
+            $("#delModalBtn").on("click", function(){
+
+                var obj = {bno:bno, rno:rno, csrf:csrf};
+
+                replyManager.remove(obj, function(list){
+
+                    alert("댓글이 삭제되었습니다. ");
+                    afterAll(list);
+                });
+
+            });
+
+            function afterAll(list){
+                printListReply(list);
+                $("#myModal").modal("hide");
+                replyTextObj.val("");
+                replyerObj.val("");
+            }
+
+            $("#goModBtn").click(function(e){
+
+                e.preventDefault();
+
+                if(uid == null){
+                    if(confirm("로그인 할까요?")){
+                        self.location = [[@{/login}]]+"?dest=" + encodeURIComponent(self.location);
+                    }
+                }else {
+
+                    if(uid == [[${vo.writer}]]){
+                        self.location = $(this).attr('href');
+                    }else {
+                        alert("작성자만이 수정이나 삭제할 수 있습니다.");
+                    }
+                }
+            });
+
+            $("#myModal").on('hidden.bs.modal', function () {
+                replyTextObj.val("");
+                replyerObj.val("");
+            })
+
+        });
+    </script>
+
+</th:block>

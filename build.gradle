@@ -1,0 +1,176 @@
+buildscript {
+	ext {
+		springBootVersion = '2.0.0.M7'
+	}
+	repositories {
+		mavenCentral()
+		maven { url "https://repo.spring.io/snapshot" }
+		maven { url "https://repo.spring.io/milestone" }
+		maven { url "https://plugins.gradle.org/m2/" }
+	}
+	dependencies {
+		classpath("org.springframework.boot:spring-boot-gradle-plugin:${springBootVersion}")
+		classpath "nu.studer:gradle-jooq-plugin:2.0.9"
+	}
+}
+
+apply plugin: 'java'
+apply plugin: 'eclipse'
+apply plugin: 'org.springframework.boot'
+apply plugin: 'io.spring.dependency-management'
+apply plugin: 'nu.studer.jooq'
+
+group = 'com.mkcheong'
+version = '0.0.1-SNAPSHOT'
+sourceCompatibility = 1.8
+
+repositories {
+	mavenCentral()
+	maven { url "https://repo.spring.io/snapshot" }
+	maven { url "https://repo.spring.io/milestone" }
+	maven { url "https://plugins.gradle.org/m2/" }
+}
+
+dependencies {
+	/**
+	 * spring-boot dependency
+	 */
+	compile('org.springframework.boot:spring-boot-starter-data-jpa')
+	compile('org.springframework.boot:spring-boot-starter-jooq')
+	compile('org.springframework.boot:spring-boot-starter-thymeleaf')
+	compile('org.springframework.boot:spring-boot-starter-web')
+	compile('org.springframework.boot:spring-boot-starter-security')
+	/**
+	 * spring-session-data-redis dependency
+	 */
+	compile group: 'org.springframework.session', name: 'spring-session-data-redis', version: '2.0.1.RELEASE'
+	compile group: 'io.lettuce', name: 'lettuce-core', version: '5.0.1.RELEASE'
+	/**
+	 * jdbc dependency
+	 */
+	compile group: 'org.mariadb.jdbc', name: 'mariadb-java-client', version: '2.2.1'
+	/**
+	 * thymeleaf dependency
+	 */
+	compile group: 'nz.net.ultraq.thymeleaf', name: 'thymeleaf-layout-dialect', version: '2.2.2'
+	/**
+	 * jooq dependency
+	 */
+	compile 'org.jooq:jooq'
+	jooqRuntime group: 'org.mariadb.jdbc', name: 'mariadb-java-client', version: '2.2.1'
+	/**
+	 * querydsl dependency
+	 */
+	compile group: 'com.querydsl', name: 'querydsl-core', version: '4.1.4'
+	compile group: 'com.querydsl', name: 'querydsl-apt', version: '4.1.4'
+	compile group: 'com.querydsl', name: 'querydsl-jpa', version: '4.1.4'
+	/**
+	 * lombok dependency
+	 */
+	compile group: 'org.projectlombok', name: 'lombok', version: '1.16.18'
+	/**
+	 * thymeleaf-extras-springsecurity4 dependency
+	 */
+	compile group: 'org.thymeleaf.extras', name: 'thymeleaf-extras-springsecurity4', version: '3.0.2.RELEASE'
+	/**
+	 * imgscalr-lib dependency
+	 */
+	compile group: 'org.imgscalr', name: 'imgscalr-lib', version: '4.2'
+	/**
+	 * lucy-xss-servlet dependency
+	 */
+	compile group: 'com.navercorp.lucy', name: 'lucy-xss-servlet', version: '2.0.0'
+	compile('org.springframework.boot:spring-boot-devtools')
+	testCompile('org.springframework.boot:spring-boot-starter-test')
+	testCompile('org.springframework.security:spring-security-test')
+}
+
+/**** JOOQ Class Generate Script ****/
+def jooqOutput = file("src/main/generated/jooq")
+
+jooq {
+	version = '3.10.1'
+	edition = 'OSS'
+	db1(sourceSets.main) {
+		jdbc {
+			driver = 'org.mariadb.jdbc.Driver'
+			url = 'jdbc:mariadb://moonkoo.synology.me:3307/moonkoo'
+			user = 'moonkoo'
+			password = 'moong1104!'
+		}
+		generator {
+			name = 'org.jooq.util.DefaultGenerator'
+			strategy {
+				name = 'org.jooq.util.DefaultGeneratorStrategy'  // use the custom generator strategy
+			}
+			database {
+				name = 'org.jooq.util.mariadb.MariaDBDatabase'
+				includes = '.*'
+				excludes = ''
+			}
+			generate {
+				relations = true
+				deprecated = true
+				instanceFields = true
+				generatedAnnotation = true
+				records = true
+				pojos = true
+				immutablePojos = false
+				interfaces = false
+				daos = false
+				jpaAnnotations = false
+				validationAnnotations = false
+				globalObjectReferences = true
+				fluentSetters = false
+			}
+			target {
+				packageName = "com.mkcheong.domain"
+				directory = jooqOutput
+			}
+		}
+	}
+}
+
+/**** QueryDSL Class Generate Script ****/
+
+def queryDslOutput = file("src/main/generated/querydsl")
+
+sourceSets {
+	main {
+		java {
+			srcDir queryDslOutput
+		}
+	}
+}
+
+task generateQueryDSL(type: JavaCompile, group: 'build') {
+	doFirst {
+		if (!queryDslOutput.exists()) {
+			logger.info("Creating `$queryDslOutput` directory")
+
+			if (!queryDslOutput.mkdirs()) {
+				throw new InvalidUserDataException("Unable to create `$queryDslOutput` directory")
+			}
+		}
+	}
+
+	source = sourceSets.main.java
+	classpath = configurations.compile
+	options.compilerArgs = [
+			"-proc:only",
+			"-processor",
+			"com.querydsl.apt.jpa.JPAAnnotationProcessor"
+	]
+	destinationDir = queryDslOutput
+}
+
+compileTestJava.dependsOn(generateQueryDSL)
+
+/**
+ * gradle clean task 실행 시 querydsl,jooq 경로 제거
+ */
+clean {
+	delete queryDslOutput
+	delete jooqOutput
+}
+
