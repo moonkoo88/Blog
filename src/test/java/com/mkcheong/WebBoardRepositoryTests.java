@@ -32,7 +32,7 @@ public class WebBoardRepositoryTests {
     WebBoardRepository repo;
     @Autowired
     DSLContext dsl;
-
+    /*
     @Test
     public void insertBoardDummies() {
         IntStream.range(0, 300).forEach(i -> {
@@ -45,7 +45,7 @@ public class WebBoardRepositoryTests {
             repo.save(board);
         });
     }
-
+    */
     @Test
     public void testList1ByQueryDSL() {
         Pageable pageable = PageRequest.of(0, 20, Sort.Direction.DESC, "bno");

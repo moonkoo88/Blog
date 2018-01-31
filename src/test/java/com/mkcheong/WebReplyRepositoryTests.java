@@ -22,7 +22,7 @@ public class WebReplyRepositoryTests {
 
     @Autowired
     WebReplyRepository repo;
-
+    /*
     @Test
     public void testInsertReplies(){
         Long[] arr = {298L, 299L, 300L};
@@ -41,4 +41,5 @@ public class WebReplyRepositoryTests {
             });
         });
     }
+    */
 }
