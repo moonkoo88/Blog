@@ -18,6 +18,7 @@ import org.springframework.test.annotation.Commit;
 import org.springframework.test.context.junit4.SpringRunner;
 
 
+import javax.transaction.Transactional;
 import java.util.stream.IntStream;
 
 import static com.mkcheong.domain.moonkoo.tables.TblWebboards.TBL_WEBBOARDS;
@@ -47,6 +48,7 @@ public class WebBoardRepositoryTests {
     }
     */
     @Test
+    @Transactional
     public void testList1ByQueryDSL() {
         Pageable pageable = PageRequest.of(0, 20, Sort.Direction.DESC, "bno");
 
@@ -65,6 +67,7 @@ public class WebBoardRepositoryTests {
     }
 
     @Test
+    @Transactional
     public void testList2(){
         Pageable pageable = PageRequest.of(0, 20, Sort.Direction.DESC, "bno");
 
