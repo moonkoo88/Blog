@@ -12,6 +12,7 @@ import org.springframework.test.annotation.Commit;
 import org.springframework.test.context.junit4.SpringRunner;
 
 import java.util.Arrays;
+import java.util.List;
 import java.util.stream.IntStream;
 
 @RunWith(SpringRunner.class)
@@ -42,4 +43,13 @@ public class WebReplyRepositoryTests {
         });
     }
     */
+    @Test
+    public void testReplyList(){
+        WebBoard board = new WebBoard();
+        board.setBno(299L);
+        List<WebReply> result = repo.getRepliesOfBoard(board);
+        for (WebReply reply : result){
+            log.info("" + reply);
+        }
+    }
 }
