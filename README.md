@@ -24,5 +24,3 @@
 ============
 
 ![default](https://user-images.githubusercontent.com/37525955/37598356-5986d98e-2bc5-11e8-81dc-08a28cc7001d.PNG)
-
-<img src="https://user-images.githubusercontent.com/37525955/37598356-5986d98e-2bc5-11e8-81dc-08a28cc7001d.PNG" width="90%"></img>
